@@ -6,18 +6,18 @@ This can be useful for emulator developers who want to determine which ROM to us
 
 The script opens `.gb` and `.gbc` files. It will also look inside of `.zip` archives given that the contained file shares the same name, as is often the case (for example `My Awesome Rom (U) [!].zip` contains `My Awesome Rom (U) [!].gb`).
 
-It is additionally possible to categorize the ROMs in the HTML output, by putting them in separate sub-directories of `roms/`. For example:
+It is additionally possible to categorize the ROMs in the HTML output by putting them in separate sub-directories of `roms/`. For example:
 
     roms/
         games/
             rom1.gb
             rom2.gbc
-            foo.zip [containing rom3.gb]
+            rom3.zip [containing rom3.gb]
         demos/
-            bar.zip [containing rom4.gbc, rom5.gb]
-            rom6.gb
+            rom4.zip [containing rom4.gbc]
+            romA.gb
         test_roms/
-            rom7.gbc
+            romB.gbc
 
 
 ### TODO
