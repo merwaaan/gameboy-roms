@@ -54,22 +54,39 @@
 
   <script>
 
-    var rows = [];
-    var categories = [];
+    // Initialization
 
-    // Cache all rows
+    var rows = [];
+
+    var filter = {
+      'ROM ONLY': true,
+      MBC1: true,
+      MBC2: true,
+      MBC3: true,
+      MBC4: true,
+      MBC5: true,
+      RAM: true,
+      BATTERY: true,
+      TIMER: true,
+      RUMBLE: true
+    }
+
     var rows_dom = document.querySelectorAll('tr');
     for (var r = 1; r < rows_dom.length; ++r) {
+
+      // Cache all rows
       rows.push({
         row_element: rows_dom[r],
         mbc_element: rows_dom[r].querySelector('td:nth-child(3)'),
         cat_element: rows_dom[r].querySelector('td:nth-child(7)')
       });
 
-      // Add checkboxes for the possible categories
+      // Add checkboxes for the categories
       var category = rows[rows.length-1].cat_element.innerHTML;
-      if (category !== '' && categories.indexOf(category) < 0) {
-        categories.push(category);
+      if (category !== '' && filter[category] === undefined) {
+
+        filter[category] = true;
+
         var input = document.createElement('input');
         input.type = 'checkbox';
         input.name = category;
@@ -84,19 +101,29 @@
       }
     }
 
-    // Row filtering
+    // Filtering
 
-    var criteria = ['ROM ONLY', 'MBC1', 'MBC2', 'MBC3', 'MBC4', 'MBC5', 'RAM', 'BATTERY', 'TIMER', 'RUMBLE'];
-    var criteria_and_categories = criteria.concat(categories);
-    for (var i in criteria_and_categories)
-      document.querySelector('input[name="'+criteria_and_categories[i]+'"]').addEventListener('change', function(event) {
-        filter(event.target.name, event.target.checked);
+    var criteria = Object.keys(filter);
+
+    for (var i in criteria)
+      document.querySelector('input[name="'+criteria[i]+'"]').addEventListener('change', function(event) {
+        update(event.target.name, event.target.checked);
       });
 
-    function filter(criterion, show) { // XXX does not really work with successive checkings/uncheckings
-      for (var i in rows)
-        if ((criteria.indexOf(criterion) > -1 ? rows[i].mbc_element : rows[i].cat_element).innerHTML.indexOf(criterion) > - 1)
-          rows[i].row_element.style.display = show ? 'table-row' : 'none';
+    function update(criterion, on) {
+      filter[criterion] = on; // Update filter
+      for (var i in rows) // Update view
+        rows[i].row_element.style.display = filtered(rows[i]) ? 'none' : 'table-row';
+    }
+
+    function filtered(row) {
+      for (var i = 0; i < 10; ++i)
+        if (filter[criteria[i]] == false && row.mbc_element.innerHTML.indexOf(criteria[i]) > -1)
+          return true;
+      for (var i = 10; i < criteria.length; ++i)
+        if (filter[criteria[i]] == false && row.cat_element.innerHTML == criteria[i])
+          return true;
+      return false;
     }
 
   </script>
