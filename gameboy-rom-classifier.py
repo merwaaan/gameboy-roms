@@ -114,7 +114,7 @@ def sp(path):
 
 # Read ROMs
 
-roms_data = data = []
+roms_data = []
 
 for root, dirs, files in os.walk('roms'):
   for file in filter(extension_ok, files):
@@ -131,6 +131,9 @@ for root, dirs, files in os.walk('roms'):
     rom_data['category'] = path_bits[1] if len(path_bits) > 2 else ''
     
     roms_data.append(rom_data)
+
+    # Sort alphabetically
+    roms_data.sort(key=lambda x: x['file'])
 
 print(roms_data)
 
