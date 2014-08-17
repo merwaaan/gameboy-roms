@@ -39,24 +39,24 @@ mbcs = {
 }
 
 rom_sizes = {
-  0x00: '32 Kb',
-  0x01: '64 Kb (4 banks)',
+  0x00: '&nbsp;32 Kb',
+  0x01: '&nbsp;64 Kb (4 banks)',
   0x02: '128 Kb (8 banks)',
   0x03: '256 Kb (16 banks)',
   0x04: '512 Kb (32 banks)',
-  0x05: '1 Mb (64 banks)',
-  0x06: '2 Mb (128 banks)',
-  0x07: '4 Mb (256 banks)',
+  0x05: '&nbsp;&nbsp;1 Mb (64 banks)',
+  0x06: '&nbsp;&nbsp;2 Mb (128 banks)',
+  0x07: '&nbsp;&nbsp;4 Mb (256 banks)',
   0x52: '1.1 Mb (72 banks)',
   0x53: '1.2 Mb (80 banks)',
   0x54: '1.6 Mb Kb (96 banks)'
 }
 
 ram_sizes = [
-  'None',
-  '2 Kb',
-  '8 Kb',
-  '32 Kb (4 banks)'
+  '',
+  '&nbsp;2 Kb',
+  '&nbsp;8 Kb',
+  '32 Kb'
 ]
 
 
@@ -165,5 +165,5 @@ for rom_data in roms_data:
   add_cell(row, rom_data['category'])
 
 output = open('index.html', 'w+')
-output.write(soup.renderContents())
+output.write(soup.encode_contents(formatter=None))
 output.close()
