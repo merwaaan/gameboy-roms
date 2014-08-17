@@ -21,5 +21,6 @@ It is additionally possible to categorize the ROMs in the HTML output by putting
 
 
 ### TODO
+- handle non-standard stuff
 - add Javascript to sort/filter rows on the output page
 - read .7z files

@@ -2,12 +2,39 @@
 <head>
   <title>Game Boy ROMs</title>
   <meta charset="utf-8">
-    
-  <script src="libs/underscore.min.js"></script>  
-
-  <link rel="stylesheet" type="text/css" href="screen.css"/>
 </head>
 <body>
+
+  <header>
+    <h1>Title</h1>
+    <p>Description</p>
+  </header>
+
+  <section id="filters">
+
+    <fieldset>
+      <legend>MBC</legend>
+      <label><input type="checkbox" name="ROM ONLY" checked>ROM ONLY</label>
+      <label><input type="checkbox" name="MBC1" checked>MBC1</label>
+      <label><input type="checkbox" name="MBC2" checked>MBC2</label>
+      <label><input type="checkbox" name="MBC3" checked>MBC3</label>
+      <label><input type="checkbox" name="MBC4" checked>MBC4</label>
+      <label><input type="checkbox" name="MBC5" checked>MBC5</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Specs</legend>
+      <label><input type="checkbox" name="RAM" checked>RAM</label>
+      <label><input type="checkbox" name="BATTERY" checked>BATTERY</label>
+      <label><input type="checkbox" name="TIMER" checked>TIMER</label>
+      <label><input type="checkbox" name="RUMBLE" checked>RUMBLE</label>
+    </fieldset>
+
+    <fieldset id="categories" style="display: none">
+      <legend>Categories</legend>
+    </fieldset>
+
+  </section>
 
   <table>
     <tr>
@@ -16,15 +43,77 @@
       <th>MBC</th>
       <th>ROM size</th>
       <th>RAM size</th>
-      <th>SGB capabilities</th>
+      <th>SGB</th>
       <th>Category</th>
     </tr>
   </table>
 
+  <footer>
+    <p>Generated with <a href="http://github.com/merwaaan/gameboy-rom-classifier">this script</a></p>
+  </footer>
+
   <script>
+
+    var rows = [];
+    var categories = [];
+
+    // Cache all rows
+    var rows_dom = document.querySelectorAll('tr');
+    for (var r = 1; r < rows_dom.length; ++r) {
+      rows.push({
+        row_element: rows_dom[r],
+        mbc_element: rows_dom[r].querySelector('td:nth-child(3)'),
+        cat_element: rows_dom[r].querySelector('td:nth-child(7)')
+      });
+
+      // Add checkboxes for the possible categories
+      var category = rows[rows.length-1].cat_element.innerHTML;
+      if (category !== '' && categories.indexOf(category) < 0) {
+        categories.push(category);
+        var input = document.createElement('input');
+        input.type = 'checkbox';
+        input.name = category;
+        input.value = category;
+        input.checked = true;
+        var label = document.createElement('label');
+        label.textContent = category; // TODO fix position (should be right of cb)
+        label.appendChild(input);
+        var fieldset = document.querySelector('fieldset#categories');
+        fieldset.appendChild(label);
+        fieldset.style.display = 'inline-block';
+      }
+    }
+
+    // Row filtering
+
+    var criteria = ['ROM ONLY', 'MBC1', 'MBC2', 'MBC3', 'MBC4', 'MBC5', 'RAM', 'BATTERY', 'TIMER', 'RUMBLE'];
+    var criteria_and_categories = criteria.concat(categories);
+    for (var i in criteria_and_categories)
+      document.querySelector('input[name="'+criteria_and_categories[i]+'"]').addEventListener('change', function(event) {
+        filter(event.target.name, event.target.checked);
+      });
+
+    function filter(criterion, show) { // XXX does not really work with successive checkings/uncheckings
+      for (var i in rows)
+        if ((criteria.indexOf(criterion) > -1 ? rows[i].mbc_element : rows[i].cat_element).innerHTML.indexOf(criterion) > - 1)
+          rows[i].row_element.style.display = show ? 'table-row' : 'none';
+    }
+
+    // Row sorting
+    // TODO
+
   </script>
 
   <style type="text/css">
+    body {
+      font-family: monospace;
+    }
+    section#filters {
+      margin-bottom: 0.5em;
+    }
+    fieldset {
+      display: inline-block;
+    }
     table {
       border-collapse: collapse;
     }

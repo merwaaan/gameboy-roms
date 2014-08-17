@@ -39,7 +39,7 @@ mbcs = {
 }
 
 rom_sizes = {
-  0x00: '32 Kb (no banking)',
+  0x00: '32 Kb',
   0x01: '64 Kb (4 banks)',
   0x02: '128 Kb (8 banks)',
   0x03: '256 Kb (16 banks)',
@@ -162,5 +162,5 @@ for rom_data in roms_data:
   add_cell(row, rom_data['category'])
 
 output = open('index.html', 'w+')
-output.write(soup.prettify())
+output.write(soup.renderContents())
 output.close()
