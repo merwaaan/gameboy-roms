@@ -1,6 +1,7 @@
 import os
+import zipfile
 import struct
-from bs4 import BeautifulSoup, Tag
+import bs4
 
 
 # Some technical data
@@ -59,30 +60,77 @@ ram_sizes = [
 ]
 
 
-# Read the ROMS
+# Utilities
 
-roms = [file for file in os.listdir('./roms') if file.endswith('.gb')]
+def extension_ok(file_name):
+  return any(file_name.endswith(ext) for ext in ['.gb', '.gbc', '.zip'])
 
-roms_data = []
-
-for rom in roms:
-
-  file = open('./roms/' + rom, 'rb')
+def read_gb(file):
   file_data = file.read()
   file_data = struct.unpack('%dB' % (len(file_data)), file_data)
   file.close()
+  return file_data
 
-  # http://problemkaputt.de/pandocs.htm#thecartridgeheader
+def read_zip(file_path):
+  file_name = os.path.basename(file_path)
+  zip = zipfile.ZipFile(file_path, 'r')
+  file = zip.open(next(f for f in zip.namelist() if f.startswith(os.path.splitext(file_name)[0])))
+  zip.close()
+  return read_gb(file)
 
+def read_file(path):
+  print('Reading file ' + path)
+  file_data = None
+  ext = os.path.splitext(path)[1]
+  if ext == '.gb' or ext == '.gbc':
+    file_data = read_gb(open(path, 'rb'))
+  elif ext == '.zip':
+    file_data = read_zip('./roms/' + file)
+  return file_data
+  
+# http://problemkaputt.de/pandocs.htm#thecartridgeheader
+def get_rom_info(file_data):
   rom_data = {}
-  rom_data['file'] = os.path.splitext(rom)[0]
   rom_data['title'] = ''.join(map(lambda x: chr(x), file_data[0x134:0x144]))
   rom_data['SGB'] = file_data[0x146] == 0x03
   rom_data['type'] = file_data[0x147]
   rom_data['ROM'] = file_data[0x148]
   rom_data['RAM'] = file_data[0x149]
+  return rom_data
 
-  roms_data.append(rom_data)
+def sp(path):
+  folders=[]
+  while 1:
+    path,folder=os.path.split(path)
+    if folder!="":
+      folders.append(folder)
+    else:
+      if path!="":
+        folders.append(path)
+      break
+  folders.reverse()
+  return folders
+
+
+# Read ROMs
+
+roms_data = data = []
+
+for root, dirs, files in os.walk('roms'):
+  for file in filter(extension_ok, files):
+
+    # Read file
+    file_data = read_file(os.path.join(root, file))
+
+    # Extract ROM info
+    rom_data = get_rom_info(file_data)
+
+    # Add file name and category
+    rom_data['file'] = os.path.splitext(file)[0]
+    path_bits = sp(os.path.join(root,file))
+    rom_data['category'] = path_bits[1] if len(path_bits) > 2 else ''
+    
+    roms_data.append(rom_data)
 
 print(roms_data)
 
@@ -90,14 +138,14 @@ print(roms_data)
 # Output to HTML
 
 template = open('index_template.html', 'r')
-soup = BeautifulSoup(template.read())
+soup = bs4.BeautifulSoup(template.read())
 template.close()
 
 table = soup.find('table')
 
 def add_cell(row, content):
   cell = soup.new_tag('td')
-  cell.append(content)
+  cell.append(unicode(content, errors='ignore')) # TODO fix this
   row.append(cell)
 
 for rom_data in roms_data:
@@ -111,8 +159,7 @@ for rom_data in roms_data:
   add_cell(row, rom_sizes[rom_data['ROM']])
   add_cell(row, ram_sizes[rom_data['RAM']])
   add_cell(row, 'Y' if rom_data['SGB'] else 'N')
-
-print(soup.prettify())
+  add_cell(row, rom_data['category'])
 
 output = open('index.html', 'w+')
 output.write(soup.prettify())
