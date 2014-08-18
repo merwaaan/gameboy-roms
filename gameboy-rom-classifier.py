@@ -75,7 +75,7 @@ def read_gb(file):
 def read_zip(file_path): # TODO what if several files?
   file_name = os.path.basename(file_path)
   zip = zipfile.ZipFile(file_path, 'r')
-  file = zip.open(next(f for f in zip.namelist() if f.startswith(os.path.splitext(file_name)[0])))
+  file = zip.open(next(f for f in zip.namelist()))
   zip.close()
   return read_gb(file)
 
