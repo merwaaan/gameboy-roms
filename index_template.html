@@ -20,6 +20,11 @@
       <label><input type="checkbox" name="MBC3" checked>MBC3</label>
       <label><input type="checkbox" name="MBC4" checked>MBC4</label>
       <label><input type="checkbox" name="MBC5" checked>MBC5</label>
+      <label><input type="checkbox" name="MMM01" checked>MMM01</label>
+      <label><input type="checkbox" name="POCKET CAMERA" checked>POCKET CAMERA</label>
+      <label><input type="checkbox" name="BANDAI TAMA5" checked>BANDAI TAMA5</label>
+      <label><input type="checkbox" name="HuC1" checked>HuC1</label>
+      <label><input type="checkbox" name="HuC3" checked>HuC3</label>
     </fieldset>
 
     <fieldset>
@@ -65,6 +70,11 @@
       MBC3: true,
       MBC4: true,
       MBC5: true,
+      MMM01: true,
+      'POCKET CAMERA': true,
+      'BANDAI TAMA5': true,
+      HuC1: true,
+      HuC3: true,
       RAM: true,
       BATTERY: true,
       TIMER: true,
@@ -117,7 +127,7 @@
     }
 
     function filtered(row) {
-      for (var i = 0; i < 10; ++i)
+      for (var i = 0; i < 15; ++i)
         if (filter[criteria[i]] == false && row.mbc_element.innerHTML.indexOf(criteria[i]) > -1)
           return true;
       for (var i = 10; i < criteria.length; ++i)

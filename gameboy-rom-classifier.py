@@ -69,33 +69,39 @@ def extension_ok(file_name):
 def read_gb(file):
   file_data = file.read()
   file_data = struct.unpack('%dB' % (len(file_data)), file_data)
-  #file.close()
+  #file.close() TODO close when necessary
   return file_data
 
-def read_zip(file_path): # TODO what if several files?
-  file_name = os.path.basename(file_path)
-  zip = zipfile.ZipFile(file_path, 'r')
-  file = zip.open(next(f for f in zip.namelist()))
-  zip.close()
-  return read_gb(file)
+def read_zip(path):
+  files_data = []
+  file_name = os.path.basename(path)
+  zip = zipfile.ZipFile(path, 'r')
+  for name in zip.namelist():
+    file = zip.open(name)
+    files_data += [read_gb(file)]
+    zip.close()
+  return files_data
 
-def read_7z(file_path): # TODO what if several files
-  file_name = os.path.basename(file_path)
-  sz = py7zlib.Archive7z(open(file_path, 'rb'))
-  file = sz.getmember(next(m for m in sz.getnames()))
-  return read_gb(file)
+def read_7z(path):
+  files_data = []
+  file_name = os.path.basename(path)
+  sz = py7zlib.Archive7z(open(path, 'rb'))
+  for name in sz.getnames():
+    file = sz.getmember(next(m for m in sz.getnames()))
+    files_data += [read_gb(file)]
+  return files_data
 
-def read_file(path):
+def read_files(path):
   print('Reading file ' + path)
-  file_data = None
+  files_data = []
   ext = os.path.splitext(path)[1]
   if ext == '.gb' or ext == '.gbc':
-    file_data = read_gb(open(path, 'rb'))
+    files_data += [read_gb(open(path, 'rb'))]
   elif ext == '.zip':
-    file_data = read_zip(path)
+    files_data += read_zip(path)
   elif ext == '.7z':
-    file_data = read_7z(path)
-  return file_data
+    files_data += read_7z(path)
+  return files_data
   
 # http://problemkaputt.de/pandocs.htm#thecartridgeheader
 def get_rom_info(file_data):
@@ -103,7 +109,7 @@ def get_rom_info(file_data):
   rom_data = {}
   
   rom_data['title'] = ''.join(map(lambda x: chr(x), file_data[0x134:0x144]))
-  
+
   rom_data['SGB'] = 'Y' if file_data[0x146] == 0x03 else 'N'
 
   try:
@@ -145,18 +151,20 @@ roms_data = []
 for root, dirs, files in os.walk('roms'):
   for file in filter(extension_ok, files):
 
-    # Read file
-    file_data = read_file(os.path.join(root, file))
+    # Read file(s)
+    files_data = read_files(os.path.join(root, file))
 
-    # Extract ROM info
-    rom_data = get_rom_info(file_data)
+    for file_data in files_data:
 
-    # Add file name and category
-    rom_data['file'] = os.path.splitext(file)[0]
-    path_bits = split_path(os.path.join(root,file))
-    rom_data['category'] = path_bits[1] if len(path_bits) > 2 else ''
-    
-    roms_data.append(rom_data)
+      # Extract ROM info
+      rom_data = get_rom_info(file_data)
+
+      # Add file name and category
+      rom_data['file'] = os.path.splitext(file)[0]
+      path_bits = split_path(os.path.join(root,file))
+      rom_data['category'] = path_bits[1] if len(path_bits) > 2 else ''
+      
+      roms_data.append(rom_data)
 
     # Sort alphabetically
     roms_data.sort(key=lambda x: x['file'])
@@ -191,3 +199,5 @@ for rom_data in roms_data:
 output = open('index.html', 'w+')
 output.write(soup.encode_contents(formatter=None))
 output.close()
+
+print('Done! Extracted data from ' + str(len(roms_data)) + ' ROMs')
