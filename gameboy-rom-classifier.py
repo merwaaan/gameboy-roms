@@ -92,22 +92,39 @@ def read_file(path):
   if ext == '.gb' or ext == '.gbc':
     file_data = read_gb(open(path, 'rb'))
   elif ext == '.zip':
-    file_data = read_zip('./roms/' + file)
+    file_data = read_zip(path)
   elif ext == '.7z':
-    file_data = read_7z('./roms/' + file)
+    file_data = read_7z(path)
   return file_data
   
 # http://problemkaputt.de/pandocs.htm#thecartridgeheader
 def get_rom_info(file_data):
+
   rom_data = {}
+  
   rom_data['title'] = ''.join(map(lambda x: chr(x), file_data[0x134:0x144]))
-  rom_data['SGB'] = file_data[0x146] == 0x03
-  rom_data['type'] = file_data[0x147]
-  rom_data['ROM'] = file_data[0x148]
-  rom_data['RAM'] = file_data[0x149]
+  
+  rom_data['SGB'] = 'Y' if file_data[0x146] == 0x03 else 'N'
+
+  try:
+    rom_data['type'] = mbcs[file_data[0x147]]
+  except (IndexError, KeyError):
+    rom_data['type'] = 'Unknown (' + format(file_data[0x147], '02x') + ')'
+
+  try:
+    rom_data['ROM'] = rom_sizes[file_data[0x148]]
+  except (IndexError, KeyError):
+    rom_data['ROM'] = 'Unknown (' + format(file_data[0x148], '02x') + ')'
+
+  try:
+    rom_data['RAM'] = ram_sizes[file_data[0x149]]
+  except (IndexError, KeyError):
+    rom_data['RAM'] = 'Unknown (' + format(file_data[0x149], '02x') + ')'
+
   return rom_data
 
-def sp(path):
+# TODO clean up
+def split_path(path):
   folders=[]
   while 1:
     path,folder=os.path.split(path)
@@ -136,7 +153,7 @@ for root, dirs, files in os.walk('roms'):
 
     # Add file name and category
     rom_data['file'] = os.path.splitext(file)[0]
-    path_bits = sp(os.path.join(root,file))
+    path_bits = split_path(os.path.join(root,file))
     rom_data['category'] = path_bits[1] if len(path_bits) > 2 else ''
     
     roms_data.append(rom_data)
@@ -165,10 +182,10 @@ for rom_data in roms_data:
 
   add_cell(row, rom_data['file'])
   add_cell(row, rom_data['title'])
-  add_cell(row, mbcs[rom_data['type']])
-  add_cell(row, rom_sizes[rom_data['ROM']])
-  add_cell(row, ram_sizes[rom_data['RAM']])
-  add_cell(row, 'Y' if rom_data['SGB'] else 'N')
+  add_cell(row, rom_data['type'])
+  add_cell(row, rom_data['ROM'])
+  add_cell(row, rom_data['RAM'])
+  add_cell(row, rom_data['SGB'])
   add_cell(row, rom_data['category'])
 
 output = open('index.html', 'w+')
