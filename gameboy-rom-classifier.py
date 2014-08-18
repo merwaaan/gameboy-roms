@@ -1,5 +1,6 @@
 import os
 import zipfile
+import py7zlib
 import struct
 import bs4
 
@@ -63,19 +64,25 @@ ram_sizes = [
 # Utilities
 
 def extension_ok(file_name):
-  return any(file_name.endswith(ext) for ext in ['.gb', '.gbc', '.zip'])
+  return any(file_name.endswith(ext) for ext in ['.gb', '.gbc', '.zip', '.7z'])
 
 def read_gb(file):
   file_data = file.read()
   file_data = struct.unpack('%dB' % (len(file_data)), file_data)
-  file.close()
+  #file.close()
   return file_data
 
-def read_zip(file_path):
+def read_zip(file_path): # TODO what if several files?
   file_name = os.path.basename(file_path)
   zip = zipfile.ZipFile(file_path, 'r')
   file = zip.open(next(f for f in zip.namelist() if f.startswith(os.path.splitext(file_name)[0])))
   zip.close()
+  return read_gb(file)
+
+def read_7z(file_path): # TODO what if several files
+  file_name = os.path.basename(file_path)
+  sz = py7zlib.Archive7z(open(file_path, 'rb'))
+  file = sz.getmember(next(m for m in sz.getnames()))
   return read_gb(file)
 
 def read_file(path):
@@ -86,6 +93,8 @@ def read_file(path):
     file_data = read_gb(open(path, 'rb'))
   elif ext == '.zip':
     file_data = read_zip('./roms/' + file)
+  elif ext == '.7z':
+    file_data = read_7z('./roms/' + file)
   return file_data
   
 # http://problemkaputt.de/pandocs.htm#thecartridgeheader
@@ -134,8 +143,6 @@ for root, dirs, files in os.walk('roms'):
 
     # Sort alphabetically
     roms_data.sort(key=lambda x: x['file'])
-
-print(roms_data)
 
 
 # Output to HTML

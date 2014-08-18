@@ -1,13 +1,13 @@
  <!doctype html>
 <head>
-  <title>Game Boy ROMs</title>
+  <title>GameBoy/GameBoy Color ROMs dataset</title>
   <meta charset="utf-8">
 </head>
 <body>
 
   <header>
-    <h1></h1>
-    <p>This list contains technical data extracted from GameBoy and GameBoy color ROMs. It is aimed at emulator developers that are looking</p>
+    <h1>GameBoy/GameBoy Color ROMs dataset</h1>
+    <p>This list contains technical data about GameBoy and GameBoy Color ROMs. It can be useful for emulator developers looking for ROMs to test their implementation of a specific feature, like a memory bank controller, battery-backed RAM or SGB capabilities.</p>
   </header>
 
   <section id="filters">
@@ -41,8 +41,8 @@
       <th>Title</th>
       <th>Encoded title</th>
       <th>MBC</th>
-      <th>ROM size</th>
-      <th>RAM size</th>
+      <th>ROM</th>
+      <th>RAM</th>
       <th>SGB</th>
       <th>Category</th>
     </tr>
@@ -77,8 +77,8 @@
       // Cache all rows
       rows.push({
         row_element: rows_dom[r],
-        mbc_element: rows_dom[r].querySelector('td:nth-child(3)'),
-        cat_element: rows_dom[r].querySelector('td:nth-child(7)')
+        mbc_element: rows_dom[r].children[2],
+        cat_element: rows_dom[r].children[6]
       });
 
       // Add checkboxes for the categories
@@ -131,9 +131,6 @@
   <style type="text/css">
     body {
       font-family: monospace;
-    }
-    section#filters {
-      margin-bottom: 0.5em;
     }
     fieldset {
       display: inline-block;
