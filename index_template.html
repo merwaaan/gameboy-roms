@@ -1,12 +1,12 @@
  <!doctype html>
 <head>
-  <title>GameBoy/GameBoy Color ROMs dataset</title>
+  <title>A list of GameBoy/GameBoy Color ROMs</title>
   <meta charset="utf-8">
 </head>
 <body>
 
   <header>
-    <h1>GameBoy/GameBoy Color ROMs dataset</h1>
+    <h1>GameBoy/GameBoy Color ROMs</h1>
     <p>This list contains technical data about GameBoy and GameBoy Color ROMs. It can be useful for emulator developers looking for ROMs to test their implementation of a specific feature, like a memory bank controller, battery-backed RAM or SGB capabilities.</p>
   </header>
 
@@ -54,12 +54,16 @@
   </table>
 
   <footer>
-    <p>Generated with <a href="http://github.com/merwaaan/gameboy-rom-classifier">this script</a></p>
+    <ul>
+      <li>Wikipedia page on <a href="http://en.wikipedia.org/wiki/GoodTools#Good_codes">Good codes</a></li>
+      <li>This page was generated with <a href="http://github.com/merwaaan/gameboy-rom-sorter">this script</a></li>
   </footer>
 
   <script>
 
-    // Initialization
+    /**
+      * Initialization
+      */
 
     var rows = [];
 
@@ -102,16 +106,20 @@
         input.name = category;
         input.value = category;
         input.checked = true;
+
         var label = document.createElement('label');
         label.textContent = category; // TODO fix position (should be right of cb)
         label.appendChild(input);
+
         var fieldset = document.querySelector('fieldset#categories');
         fieldset.appendChild(label);
         fieldset.style.display = 'inline-block';
       }
     }
 
-    // Filtering
+    /**
+      * Filtering
+      */
 
     var criteria = Object.keys(filter);
 
@@ -121,18 +129,23 @@
       });
 
     function update(criterion, on) {
+
       filter[criterion] = on; // Update filter
+
       for (var i in rows) // Update view
         rows[i].row_element.style.display = filtered(rows[i]) ? 'none' : 'table-row';
     }
 
     function filtered(row) {
+
       for (var i = 0; i < 15; ++i)
         if (filter[criteria[i]] == false && row.mbc_element.innerHTML.indexOf(criteria[i]) > -1)
           return true;
+
       for (var i = 10; i < criteria.length; ++i)
         if (filter[criteria[i]] == false && row.cat_element.innerHTML == criteria[i])
           return true;
+
       return false;
     }
 
@@ -144,12 +157,15 @@
     }
     fieldset {
       display: inline-block;
+      margin-bottom: 1em;
     }
     table {
       border-collapse: collapse;
     }
     th, td {
       border: 1px solid black;
+      padding-left: 0.5em;
+      padding-right: 0.5em;
     }
   </style>
 

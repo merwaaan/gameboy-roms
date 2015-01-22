@@ -5,7 +5,9 @@ import struct
 import bs4
 
 
+#
 # Some technical data
+#
 
 mbcs = {
   0x00: 'ROM ONLY',
@@ -61,75 +63,55 @@ ram_sizes = [
 ]
 
 
+#
 # Utilities
+#
 
-def extension_ok(file_name):
-  return any(file_name.endswith(ext) for ext in ['.gb', '.gbc', '.zip', '.7z'])
+def read_rom(path):
 
-def read_gb(file):
+  print('Reading file %s' % (path))
+
+  file = open(path, 'rb')
   file_data = file.read()
   file_data = struct.unpack('%dB' % (len(file_data)), file_data)
-  #file.close() TODO close when necessary
+  file.close()
+
   return file_data
 
-def read_zip(path):
-  files_data = []
-  file_name = os.path.basename(path)
-  zip = zipfile.ZipFile(path, 'r')
-  for name in zip.namelist():
-    file = zip.open(name)
-    files_data += [read_gb(file)]
-    zip.close()
-  return files_data
 
-def read_7z(path):
-  files_data = []
-  file_name = os.path.basename(path)
-  sz = py7zlib.Archive7z(open(path, 'rb'))
-  for name in sz.getnames():
-    file = sz.getmember(next(m for m in sz.getnames()))
-    files_data += [read_gb(file)]
-  return files_data
+def extract_zip(path):
 
-def read_files(path):
-  print('Reading file ' + path)
-  files_data = []
-  ext = os.path.splitext(path)[1]
-  if ext == '.gb' or ext == '.gbc':
-    files_data += [read_gb(open(path, 'rb'))]
-  elif ext == '.zip':
-    files_data += read_zip(path)
-  elif ext == '.7z':
-    files_data += read_7z(path)
-  return files_data
-  
-# http://problemkaputt.de/pandocs.htm#thecartridgeheader
-def get_rom_info(file_data):
+  file = open(path, 'rb')
+  zip = zipfile.ZipFile(file);
+  file.close()
 
-  rom_data = {}
-  
-  rom_data['title'] = ''.join(map(lambda x: chr(x), file_data[0x134:0x144]))
+  for name in [name for name in zip.namelist() if name.endswith('.gb') or name.endswith('.gbc')]:
 
-  rom_data['SGB'] = 'Y' if file_data[0x146] == 0x03 else 'N'
+    zip.extract(name, os.path.dirname(path))
 
-  try:
-    rom_data['type'] = mbcs[file_data[0x147]]
-  except (IndexError, KeyError):
-    rom_data['type'] = 'Unknown (' + format(file_data[0x147], '02x') + ')'
+    to_delete.append(os.path.join(os.path.dirname(path), name))
+    print('Extracted %s from %s' % (name, path))
 
-  try:
-    rom_data['ROM'] = rom_sizes[file_data[0x148]]
-  except (IndexError, KeyError):
-    rom_data['ROM'] = 'Unknown (' + format(file_data[0x148], '02x') + ')'
 
-  try:
-    rom_data['RAM'] = ram_sizes[file_data[0x149]]
-  except (IndexError, KeyError):
-    rom_data['RAM'] = 'Unknown (' + format(file_data[0x149], '02x') + ')'
+def extract_7z(path):
 
-  return rom_data
+  file = open(path, 'rb')
+  zip = py7zlib.Archive7z(file)
 
-# TODO clean up
+  for name in [name for name in zip.getnames() if name.endswith('.gb') or name.endswith('.gbc')]:
+
+    extracted_path = os.path.join(os.path.dirname(path), name)
+
+    extracted = open(extracted_path, 'wb')
+    extracted.write(zip.getmember(name).read())
+    extracted.close()
+
+    to_delete.append(extracted_path)
+    print('Extracted %s from %s' % (name, path))
+
+  file.close()
+
+
 def split_path(path):
   folders=[]
   while 1:
@@ -144,33 +126,98 @@ def split_path(path):
   return folders
 
 
+#
+# Decompress zip and 7z archives
+#
+
+to_delete = []
+
+for root, dirs, files in os.walk('roms'):
+  for file in files:
+
+    name, extension = os.path.splitext(file)
+
+    if extension == '.zip':
+      extract_zip(os.path.join(root, file))
+    elif extension == '.7z':
+      extract_7z(os.path.join(root, file))
+
+
+#
 # Read ROMs
+#
+
+def get_rom_info(file_data):
+
+  # http://problemkaputt.de/pandocs.htm#thecartridgeheader
+
+  rom_data = {}
+  rom_data['title'] = ''.join(map(lambda x: chr(x), file_data[0x134:0x144]))
+  rom_data['SGB'] = 'Y' if file_data[0x146] == 0x03 else 'N'
+
+  try:
+    rom_data['type'] = mbcs[file_data[0x147]]
+  except (IndexError, KeyError):
+    rom_data['type'] = '? (' + format(file_data[0x147], '02x') + ')'
+
+  try:
+    rom_data['ROM'] = rom_sizes[file_data[0x148]]
+  except (IndexError, KeyError):
+    rom_data['ROM'] = '? (' + format(file_data[0x148], '02x') + ')'
+
+  try:
+    rom_data['RAM'] = ram_sizes[file_data[0x149]]
+  except (IndexError, KeyError):
+    rom_data['RAM'] = '? (' + format(file_data[0x149], '02x') + ')'
+
+  return rom_data
+
 
 roms_data = []
 
+# Walk the directory tree
 for root, dirs, files in os.walk('roms'):
-  for file in filter(extension_ok, files):
 
-    # Read file(s)
-    files_data = read_files(os.path.join(root, file))
+  for file in files:
 
-    for file_data in files_data:
+    name, extension = os.path.splitext(file)
 
-      # Extract ROM info
-      rom_data = get_rom_info(file_data)
+    # Only consider GameBoy ROMs
+    if (extension not in ['.gb', '.gbc']):
+      print('Ignoring file ' + file)
+      continue;
 
-      # Add file name and category
-      rom_data['file'] = os.path.splitext(file)[0]
-      path_bits = split_path(os.path.join(root,file))
-      rom_data['category'] = path_bits[1] if len(path_bits) > 2 else ''
-      
-      roms_data.append(rom_data)
+    # Read the file
+    file_data =read_rom(os.path.join(root, file))
+    rom_data = get_rom_info(file_data)
 
-    # Sort alphabetically
-    roms_data.sort(key=lambda x: x['file'])
+    # Add file name and category
+    rom_data['file'] = name
+    path_bits = split_path(os.path.join(root,file))
+    rom_data['category'] = path_bits[1] if len(path_bits) > 2 else ''
+
+    roms_data.append(rom_data)
+
+  # Sort alphabetically
+  roms_data.sort(key=lambda x: x['file'])
 
 
+#
+# Delete the extracted files
+#
+
+for path in to_delete:
+  try:
+    os.remove(path)
+    print('Deleted extracted file %s' % (path))
+  except OSError as e:
+    print('Cannot delete extracted file %s, you may have to delete it manually' % (path))
+    print(e)
+
+
+#
 # Output to HTML
+#
 
 template = open('index_template.html', 'r')
 soup = bs4.BeautifulSoup(template.read())
@@ -180,7 +227,7 @@ table = soup.find('table')
 
 def add_cell(row, content):
   cell = soup.new_tag('td')
-  cell.append(unicode(content, errors='ignore')) # TODO fix this
+  cell.append(unicode(content, errors='ignore')) # TODO fix this?
   row.append(cell)
 
 for rom_data in roms_data:
@@ -200,4 +247,4 @@ output = open('index.html', 'w+')
 output.write(soup.encode_contents(formatter=None))
 output.close()
 
-print('Done! Extracted data from ' + str(len(roms_data)) + ' ROMs')
+print('Done! Extracted data from ' + str(len(roms_data)) + ' ROMs.')
