@@ -80,7 +80,7 @@ def extract_zip(path):
     zip.extract(name, os.path.dirname(path))
 
     extracted.append(os.path.join(os.path.dirname(path), name))
-    print('Extracted %s' % (name))
+    #print('Extracted %s' % (name))
 
   zip.close()
 
@@ -104,7 +104,6 @@ def extract_7z(path):
       rom.close()
 
       extracted.append(rom_path)
-      print('Extracted %s' % (name))
 
   return extracted
 
@@ -128,7 +127,7 @@ def clean_up(to_delete):
 
     try:
       os.remove(path)
-      print('Cleaned up %s' % (path))
+      #print('Cleaned up %s' % (path))
 
     except OSError as e:
       print('Cannot delete %s, you may have to delete it manually' % (path))
@@ -254,9 +253,11 @@ def html_output(data):
 
 try:
 
+  print('Extracting compressed ROMs...')
   extracted = []
   for e in extract_all():
     extracted += e # Extract compressed ROMs
+  print('Extracted %d ROMs' % (len(extracted)))
 
   data = read_roms() # Read and parse the ROMs
   html_output(data) # Populate the template
@@ -269,5 +270,7 @@ except KeyboardInterrupt:
 
 finally:
 
+  print('Cleaning up uncompressed ROMs...')
   clean_up(extracted) # Delete the uncompressed ROMs
+  print('Cleaned up %d uncompressed ROMs' % (len(extracted)))
 
