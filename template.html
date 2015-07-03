@@ -1,12 +1,12 @@
  <!doctype html>
 <head>
-  <title>A list of GameBoy/GameBoy Color ROMs</title>
+  <title>Game Boy/Game Boy Color ROMs</title>
   <meta charset="utf-8">
 </head>
 <body>
 
   <header>
-    <h1>GameBoy/GameBoy Color ROMs</h1>
+    <h1>Game Boy/Game Boy Color ROMs</h1>
   </header>
 
   <section id="filters">
@@ -121,8 +121,8 @@
         input.checked = true;
 
         var label = document.createElement('label');
-        label.textContent = category; // TODO fix position (should be right of cb)
         label.appendChild(input);
+        label.appendChild(document.createTextNode(category))
 
         var fieldset = document.querySelector('fieldset#categories');
         fieldset.appendChild(label);
@@ -178,12 +178,16 @@
       margin-bottom: 1em;
     }
     table {
+      width: 95%;
       border-collapse: collapse;
     }
     th, td {
       border: 1px solid black;
       padding-left: 0.5em;
       padding-right: 0.5em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   </style>
 
