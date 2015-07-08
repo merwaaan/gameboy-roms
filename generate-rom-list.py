@@ -128,7 +128,7 @@ def html_output(roms, output_name):
   table = soup.find('table')
 
   def add_cell(row, content):
-    text = content.decode('unicode-escape') if content is not None else '?'
+    text = content if content is not None else '?' #content.decode('unicode-escape') if content is not None else '?'
     cell = soup.new_tag('td')
     cell.append(text)
     cell['title'] = text
