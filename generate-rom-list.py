@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import argparse, bs4, itertools, os, py7zlib, struct, sys, threading, time, traceback, zipfile
+import argparse, bs4, itertools, json, os, py7zlib, struct, sys, threading, time, traceback, zipfile
 from collections import namedtuple
 
 # http://problemkaputt.de/pandocs.htm#thecartridgeheader
@@ -36,23 +36,23 @@ cart_types = {
 }
 
 rom_types = {
-  0x00: '&nbsp;32 Kb',
-  0x01: '&nbsp;64 Kb',
+  0x00: '32 Kb',
+  0x01: '64 Kb',
   0x02: '128 Kb',
   0x03: '256 Kb',
   0x04: '512 Kb',
-  0x05: '&nbsp;&nbsp;1 Mb',
-  0x06: '&nbsp;&nbsp;2 Mb',
-  0x07: '&nbsp;&nbsp;4 Mb',
+  0x05: '1 Mb',
+  0x06: '2 Mb',
+  0x07: '4 Mb',
   0x52: '1.1 Mb',
   0x53: '1.2 Mb',
-  0x54: '1.6 Mb Kb'
+  0x54: '1.6 Mb'
 }
 
 ram_types = [
   '',
-  '&nbsp;2 Kb',
-  '&nbsp;8 Kb',
+  '2 Kb',
+  '8 Kb',
   '32 Kb'
 ]
 
@@ -65,8 +65,9 @@ def parse_rom(data, filename, category):
   if args.verbose:
     print('Parsing "{}"...'.format(filename))
 
-  # Extract the embedded title
-  title = ''.join(map(lambda x: chr(x) if x < 128 else ' ', data[0x134:0x144])).rstrip(' \0')
+  # Extract the embedded title and remove NULL characters
+  title = ''.join(map(lambda x: chr(x) if x < 128 else ' ', data[0x134:0x144]))
+  title = filter(lambda x: ord(x) != 0, title)
 
   # Function for extracting the other fields
   def fetch(data, address, func):
@@ -75,7 +76,7 @@ def parse_rom(data, filename, category):
     except (IndexError, KeyError):
       return None
 
-  sgb = fetch(data, 0x146, lambda x: u'✓' if x == 0x03 else '')
+  sgb = fetch(data, 0x146, lambda x: x == 0x03)
   cart_type = fetch(data, 0x147, lambda x: cart_types[x])
   rom_type = fetch(data, 0x148, lambda x: rom_types[x])
   ram_type = fetch(data, 0x149, lambda x: ram_types[x])
@@ -119,7 +120,7 @@ def read_all(directory):
 
         yield parse_rom(rom, filename, category)
 
-# Output the extracted specs to HTML
+# Output the extracted data to HTML
 def html_output(roms, output_name):
 
   with open('template.html', 'r') as template:
@@ -127,6 +128,7 @@ def html_output(roms, output_name):
 
   table = soup.find('table')
 
+  # Add a cell to the table and fill it
   def add_cell(row, content):
     text = content if content is not None else '?' #content.decode('unicode-escape') if content is not None else '?'
     cell = soup.new_tag('td')
@@ -134,22 +136,46 @@ def html_output(roms, output_name):
     cell['title'] = text
     row.append(cell)
 
+  # Align content with non-breaking spaces
+  def align(content, type):
+    return '&nbsp;' * ((6 if type == 'ROM' else 5) - len(content)) + content
+
   for rom in roms:
+
     row = soup.new_tag('tr')
     for field in ['filename', 'title', 'cart', 'ROM', 'RAM', 'SGB', 'category']:
-      add_cell(row, getattr(rom, field))
+
+      value = getattr(rom, field)
+
+      # Special treatment for the SGB flag: use a check mark when outputting to HTML
+      if field == 'SGB':
+        value = u'✓' if value else u'✗'
+      # Special treatment for ROM and RAM: align on the unit
+      elif field in ['ROM', 'RAM'] and value is not None and len(value) > 0:
+        value = align(value, field)
+
+      add_cell(row, value)
+
     table.append(row)
 
-  with open(output_name, 'w') as output:
+  name = output_name if output_name.endswith('.html') else output_name + '.html'
+  with open(name, 'w') as output:
    output.write(soup.encode_contents(formatter=None))
 
+# Output the extracted data to JSON
+def json_output(roms, output_name):
+
+  name = output_name if output_name.endswith('.json') else output_name + '.json'
+  with open(name, 'w') as output:
+    json.dump([rom._asdict() for rom in roms], output, indent=2)
 
 # Main
 
 parser = argparse.ArgumentParser(description='Extract data from Game Boy Roms and output it to HTML.')
-parser.add_argument('-v', '--verbose', help='print more details', action='store_true')
+parser.add_argument('-v', '--verbose', help='print details during the process', action='store_true')
 parser.add_argument('-d', '--dir', help='name of the root directory containing the ROMs', default='roms')
-parser.add_argument('-o', '--output', help='name of the output HTML file', default='index.html')
+parser.add_argument('-o', '--output', help='name of the output file' , default='gameboy-roms')
+parser.add_argument('-t', '--type', help='type of the formatted output', choices=['html', 'json', 'both'], default='html')
 args = parser.parse_args()
 
 print('Parsing data from the "{}" directory...'.format(args.dir))
@@ -160,5 +186,8 @@ if len(roms) == 0:
   print('No ROMs found')
 else:
   roms.sort(key=lambda rom: rom.filename.lower())
-  html_output(roms, args.output)
+  if args.type in ['html', 'both']:
+    html_output(roms, args.output)
+  if args.type in ['json', 'both']:
+    json_output(roms, args.output)
   print('Finished! Data about {} ROMs has been output to "{}".'.format(len(roms), args.output))
