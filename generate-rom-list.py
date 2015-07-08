@@ -66,7 +66,7 @@ def parse_rom(data, filename, category):
     print('Parsing "{}"...'.format(filename))
 
   # Extract the embedded title
-  title = ''.join(map(lambda x: chr(x) if x < 128 else ' ', data[0x134:0x144])).rstrip()
+  title = ''.join(map(lambda x: chr(x) if x < 128 else ' ', data[0x134:0x144])).rstrip(' \0')
 
   # Function for extracting the other fields
   def fetch(data, address, func):
