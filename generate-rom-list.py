@@ -75,8 +75,8 @@ def parse_rom(data, filename, category):
     except (IndexError, KeyError):
       return None
 
-  sgb = fetch(data, 0x145, lambda x: u'✓' if x == 0x03 else '')
-  cart_type = fetch(data, 0x146, lambda x: cart_types[x])
+  sgb = fetch(data, 0x146, lambda x: u'✓' if x == 0x03 else '')
+  cart_type = fetch(data, 0x147, lambda x: cart_types[x])
   rom_type = fetch(data, 0x148, lambda x: rom_types[x])
   ram_type = fetch(data, 0x149, lambda x: ram_types[x])
 
