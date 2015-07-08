@@ -1,4 +1,4 @@
- <!doctype html>
+<!doctype html>
 <head>
   <title>Game Boy/Game Boy Color ROMs</title>
   <meta charset="utf-8">
@@ -60,13 +60,13 @@
   <footer>
     <ul>
       <li>Wikipedia page on <a href="http://en.wikipedia.org/wiki/GoodTools#Good_codes">Good codes</a></li>
-      <li>This page was generated with <a href="http://github.com/merwaaan/gameboy-rom-sorter">this script</a></li>
+      <li>This list was generated with <a href="https://github.com/merwaaan/gameboy-rom-list">this script</a></li>
   </footer>
 
   <script>
 
     /**
-      * Initialization
+      * Initialize the UI
       */
 
     var rows = [];
@@ -100,7 +100,7 @@
     var rows_dom = document.querySelectorAll('tr');
     for (var r = 1; r < rows_dom.length; ++r) {
 
-      // Cache all rows
+      // Cache the filterable cells of each row
       rows.push({
         row_element: rows_dom[r],
         name_element: rows_dom[r].children[0],
@@ -116,8 +116,7 @@
 
         var input = document.createElement('input');
         input.type = 'checkbox';
-        input.name = category;
-        input.value = category;
+        input.name = input.value = category;
         input.checked = true;
 
         var label = document.createElement('label');
@@ -126,12 +125,11 @@
 
         var fieldset = document.querySelector('fieldset#categories');
         fieldset.appendChild(label);
-        fieldset.style.display = 'inline-block';
       }
     }
 
     /**
-      * Filtering
+      * Filter what's shown.
       */
 
     var criteria = Object.keys(filter);
@@ -183,11 +181,8 @@
     }
     th, td {
       border: 1px solid black;
-      padding-left: 0.5em;
-      padding-right: 0.5em;
+      padding: 0 0.5em;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
   </style>
 
