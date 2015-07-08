@@ -35,89 +35,68 @@ cart_types = {
   0xFF: 'HuC1+RAM+BATTERY'
 }
 
-rom_sizes = {
+rom_types = {
   0x00: '&nbsp;32 Kb',
-  0x01: '&nbsp;64 Kb (4 banks)',
-  0x02: '128 Kb (8 banks)',
-  0x03: '256 Kb (16 banks)',
-  0x04: '512 Kb (32 banks)',
-  0x05: '&nbsp;&nbsp;1 Mb (64 banks)',
-  0x06: '&nbsp;&nbsp;2 Mb (128 banks)',
-  0x07: '&nbsp;&nbsp;4 Mb (256 banks)',
-  0x52: '1.1 Mb (72 banks)',
-  0x53: '1.2 Mb (80 banks)',
-  0x54: '1.6 Mb Kb (96 banks)'
+  0x01: '&nbsp;64 Kb',
+  0x02: '128 Kb',
+  0x03: '256 Kb',
+  0x04: '512 Kb',
+  0x05: '&nbsp;&nbsp;1 Mb',
+  0x06: '&nbsp;&nbsp;2 Mb',
+  0x07: '&nbsp;&nbsp;4 Mb',
+  0x52: '1.1 Mb',
+  0x53: '1.2 Mb',
+  0x54: '1.6 Mb Kb'
 }
 
-ram_sizes = [
+ram_types = [
   '',
   '&nbsp;2 Kb',
   '&nbsp;8 Kb',
   '32 Kb'
 ]
 
-# Structure containing the data extracted from Game Boy ROMs
-Rom = namedtuple('Rom', ['filename', 'category', 'title', 'SGB', 'cart', 'ROM', 'RAM'])
+# Structure containing the data extracted from one Game Boy ROM
+Rom = namedtuple('Rom', ['filename', 'category', 'title', 'cart', 'ROM', 'RAM', 'SGB'])
 
 # Parse the bytes from a ROM and return its specs
-def parse_rom(rom, filename, category):
+def parse_rom(data, filename, category):
 
   if args.verbose:
     print('Parsing "{}"...'.format(filename))
 
-  title = ''.join(map(lambda x: chr(x), rom[0x134:0x144]))
-  SGB = 'Y' if rom[0x146] == 0x03 else 'N'
-  cart = cart_types[rom[0x147]]
-  ROM = rom_sizes[rom[0x148]]
-  RAM = ram_sizes[rom[0x149]]
+  # Extract the embedded title
+  title = ''.join(map(lambda x: chr(x), data[0x134:0x144]))
 
-  rom = Rom(filename, category, title, SGB, cart, ROM, RAM)
+  # Function for extracting the other fields
+  def fetch(data, address, func):
+    try:
+      return func(data[address])
+    except (IndexError, KeyError):
+      return None
+
+  sgb = fetch(data, 0x145, lambda x: u'✓' if x == 0x03 else '')
+  cart_type = fetch(data, 0x146, lambda x: cart_types[x])
+  rom_type = fetch(data, 0x148, lambda x: rom_types[x])
+  ram_type = fetch(data, 0x149, lambda x: ram_types[x])
+
+  rom = Rom(filename, category, title, cart_type, rom_type, ram_type, sgb)
 
   if args.verbose:
-    print('\t↳ {}'.format(rom))
+    print('\t→ {}'.format(rom))
 
   return rom
 
-# File reading utilities
-
-def bytes(data):
-  return struct.unpack('%dB' % len(data), data)
-
-def read_gb(path):
+# Read a ROM file and return its content
+def read_rom(path):
   try:
     with open(path, 'rb') as file:
-      yield (bytes(file.read()), os.path.basename(path))
+      data = file.read()
+      bytes = struct.unpack('%dB' % len(data), data)
+      return bytes
   except Exception as e:
     print('Error while reading ROM "{}": {}'.format(path, e))
     traceback.print_exc()
-
-def read_zip(path):
-  try:
-    with zipfile.ZipFile(path, 'r') as zip:
-      names = [name for name in zip.namelist() if name.endswith('.gb') or name.endswith('.gbc')]
-      for name in names:
-        yield (bytes(zip.read(name)), name)
-  except Exception as e:
-    print('Error while reading ZIP archive "{}": {}'.format(path, e))
-    traceback.print_exc()
-
-def read_7z(path):
-  try:
-    with open(path, 'rb') as file:
-      zip = py7zlib.Archive7z(file)
-      names = [name for name in zip.getnames() if name.endswith('.gb') or name.endswith('.gbc')]
-      for name in names:
-        yield (bytes(zip.getmember(name).read()), name)
-  except Exception as e:
-    print('Error while reading 7Z archive "{}": {}'.format(path, e))
-    traceback.print_exc()
-
-handlers = {
-  #'.zip': read_zip,
-  #'.7z': read_7z,
-  '.gb': read_gb,
-  '.gbc': read_gb
-}
 
 # Read and parse all the ROMs under the directory
 def read_all(directory):
@@ -127,20 +106,18 @@ def read_all(directory):
 
       name, extension = os.path.splitext(file)
       path = os.path.join(root, file)
-      segments = path.split(os.sep)
-      category = segments[1] if len(segments) > 2 else ''
 
-      try:
+      if extension in ['.gb', '.gbc']:
+        rom = read_rom(path)
 
-        # Get the file content and parse it
-        # (may be several ROMs if the file is an archive)
-        handler = handlers[extension.lower()]
-        for rom, filename in handler(path):
-          yield parse_rom(rom, filename, category)
+        # Get the original file name
+        filename = os.path.basename(path)
 
-      except KeyError as e:
-        if args.verbose:
-          print('Ignoring "{}" (unsupported extension).'.format(file))
+        # The current directory is the category
+        segments = path.split(os.sep)
+        category = segments[1] if len(segments) > 2 else ''
+
+        yield parse_rom(rom, filename, category)
 
 # Output the extracted specs to HTML
 def html_output(roms, output_name):
@@ -151,8 +128,8 @@ def html_output(roms, output_name):
   table = soup.find('table')
 
   def add_cell(row, content):
+    text = content.decode('unicode-escape') if content is not None else '?'
     cell = soup.new_tag('td')
-    text = unicode(content, errors='ignore')
     cell.append(text)
     cell['title'] = text
     row.append(cell)
@@ -176,7 +153,12 @@ parser.add_argument('-o', '--output', help='name of the output HTML file', defau
 args = parser.parse_args()
 
 print('Parsing data from the "{}" directory...'.format(args.dir))
+
 roms = list(read_all(args.dir))
-roms.sort(key=lambda rom: rom.filename.lower())
-html_output(roms, args.output)
-print('Finished! The parsed data has been output to "{}".'.format(args.output))
+
+if len(roms) == 0:
+  print('No ROMs found')
+else:
+  roms.sort(key=lambda rom: rom.filename.lower())
+  html_output(roms, args.output)
+  print('Finished! Data about {} ROMs has been output to "{}".'.format(len(roms), args.output))
